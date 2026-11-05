@@ -1,0 +1,538 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pipeline>
+  <info>
+    <pipeline_version/>
+    <capture_transform_performance>N</capture_transform_performance>
+    <transform_performance_capturing_delay>1000</transform_performance_capturing_delay>
+    <transform_performance_capturing_size_limit>100</transform_performance_capturing_size_limit>
+    <pipeline_type>Normal</pipeline_type>
+    <pipeline_status>0</pipeline_status>
+    <parameters/>
+    <name>01_imdb_clean</name>
+    <name_sync_with_filename>Y</name_sync_with_filename>
+    <description>Limpia IMDb: filtra peliculas, elimina nulos y une title.basics con title.ratings por tconst. Salida Parquet en staging.</description>
+    <extended_description/>
+    <created_user>-</created_user>
+    <modified_user>-</modified_user>
+    <created_date>2026/10/19 22:00:00.000</created_date>
+    <modified_date>2026/10/19 22:00:00.000</modified_date>
+  </info>
+  <transform>
+    <type>TableInput</type>
+    <name>01 Leer title.basics</name>
+    <sql>SELECT tconst, titleType, primaryTitle, startYear, isAdult, genres
+FROM title_basics</sql>
+    <limit/>
+    <execute_each_row>N</execute_each_row>
+    <variables_active>N</variables_active>
+    <connection>imdb_mysql</connection>
+    <lookup/>
+    <sql_from_file/>
+    <distribute>Y</distribute>
+    <copies>1</copies>
+    <GUI>
+      <xloc>128</xloc>
+      <yloc>112</yloc>
+    </GUI>
+    <description>Lee title_basics desde MySQL. El filtro titleType='movie' se hace en SQL; el resto, en Hop.</description>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
+    <attributes/>
+  </transform>
+  <transform>
+    <type>FilterRows</type>
+    <name>02 Solo peliculas</name>
+    <compare>
+      <condition>
+        <negated>N</negated>
+        <operator>-</operator>
+        <leftvalue>titleType</leftvalue>
+        <function>=</function>
+        <rightvalue/>
+        <value>
+          <name>constant</name>
+          <type>String</type>
+          <text>movie</text>
+          <length>-1</length>
+          <precision>-1</precision>
+          <isnull>N</isnull>
+          <mask/>
+        </value>
+        <conditions/>
+      </condition>
+    </compare>
+    <send_true_to>03 Con anio</send_true_to>
+    <distribute>Y</distribute>
+    <copies>1</copies>
+    <GUI>
+      <xloc>320</xloc>
+      <yloc>112</yloc>
+    </GUI>
+    <description>Descarta series, cortos, videojuegos... Solo titleType = movie.</description>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
+    <attributes/>
+  </transform>
+  <transform>
+    <type>FilterRows</type>
+    <name>03 Con anio</name>
+    <compare>
+      <condition>
+        <negated>N</negated>
+        <operator>-</operator>
+        <leftvalue>startYear</leftvalue>
+        <function>IS NOT NULL</function>
+        <rightvalue/>
+        <value>
+          <name>constant</name>
+          <type>String</type>
+          <text/>
+          <length>-1</length>
+          <precision>-1</precision>
+          <isnull>N</isnull>
+          <mask/>
+        </value>
+        <conditions/>
+      </condition>
+    </compare>
+    <send_true_to>04 Con genero</send_true_to>
+    <send_false_to/>
+    <distribute>Y</distribute>
+    <copies>1</copies>
+    <GUI>
+      <xloc>512</xloc>
+      <yloc>112</yloc>
+    </GUI>
+    <description>Elimina peliculas sin startYear (ahora NULL real, no la cadena \N).</description>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
+    <attributes/>
+  </transform>
+  <transform>
+    <type>FilterRows</type>
+    <name>04 Con genero</name>
+    <compare>
+      <condition>
+        <negated>N</negated>
+        <operator>-</operator>
+        <leftvalue>genres</leftvalue>
+        <function>IS NOT NULL</function>
+        <rightvalue/>
+        <value>
+          <name>constant</name>
+          <type>String</type>
+          <text/>
+          <length>-1</length>
+          <precision>-1</precision>
+          <isnull>N</isnull>
+          <mask/>
+        </value>
+        <conditions/>
+      </condition>
+    </compare>
+    <send_true_to>05 Sin contenido adulto</send_true_to>
+    <send_false_to/>
+    <distribute>Y</distribute>
+    <copies>1</copies>
+    <GUI>
+      <xloc>704</xloc>
+      <yloc>112</yloc>
+    </GUI>
+    <description>Elimina peliculas sin genero (NULL real).</description>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
+    <attributes/>
+  </transform>
+  <transform>
+    <type>FilterRows</type>
+    <name>05 Sin contenido adulto</name>
+    <compare>
+      <condition>
+        <negated>N</negated>
+        <operator>-</operator>
+        <leftvalue>isAdult</leftvalue>
+        <function>=</function>
+        <rightvalue/>
+        <value>
+          <name>constant</name>
+          <type>Integer</type>
+          <text>0</text>
+          <length>-1</length>
+          <precision>-1</precision>
+          <isnull>N</isnull>
+          <mask/>
+        </value>
+        <conditions/>
+      </condition>
+    </compare>
+    <send_true_to>06 Ordenar basics por tconst</send_true_to>
+    <send_false_to/>
+    <distribute>Y</distribute>
+    <copies>1</copies>
+    <GUI>
+      <xloc>896</xloc>
+      <yloc>112</yloc>
+    </GUI>
+    <description>Descarta contenido adulto. isAdult es tinyint en MySQL.</description>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
+    <attributes/>
+  </transform>
+  <transform>
+    <type>SortRows</type>
+    <name>06 Ordenar basics por tconst</name>
+    <fields>
+      <field>
+        <name>tconst</name>
+        <ascending>Y</ascending>
+        <case_sensitive>N</case_sensitive>
+        <collator_enabled>N</collator_enabled>
+        <collator_strength>0</collator_strength>
+        <presorted>N</presorted>
+      </field>
+    </fields>
+    <directory>${java.io.tmpdir}</directory>
+    <sort_prefix>out</sort_prefix>
+    <sort_size>1000000</sort_size>
+    <free_memory/>
+    <unique_rows>N</unique_rows>
+    <compress>N</compress>
+    <compress_variables/>
+    <distribute>Y</distribute>
+    <copies>1</copies>
+    <GUI>
+      <xloc>1088</xloc>
+      <yloc>112</yloc>
+    </GUI>
+    <description>OBLIGATORIO antes del MergeJoin: ambos flujos deben llegar ordenados por la clave.</description>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
+    <attributes/>
+  </transform>
+  <transform>
+    <type>TableInput</type>
+    <name>07 Leer title.ratings</name>
+    <sql>SELECT tconst, averageRating, numVotes
+FROM title_ratings</sql>
+    <execute_each_row>N</execute_each_row>
+    <variables_active>N</variables_active>
+    <connection>imdb_mysql</connection>
+    <distribute>Y</distribute>
+    <copies>1</copies>
+    <GUI>
+      <xloc>1088</xloc>
+      <yloc>304</yloc>
+    </GUI>
+    <description>Lee title_ratings desde MySQL.</description>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
+    <attributes/>
+  </transform>
+  <transform>
+    <type>SortRows</type>
+    <name>08 Ordenar ratings por tconst</name>
+    <fields>
+      <field>
+        <name>tconst</name>
+        <ascending>Y</ascending>
+        <case_sensitive>N</case_sensitive>
+        <collator_enabled>N</collator_enabled>
+        <collator_strength>0</collator_strength>
+        <presorted>N</presorted>
+      </field>
+    </fields>
+    <directory>${java.io.tmpdir}</directory>
+    <sort_prefix>out</sort_prefix>
+    <sort_size>1000000</sort_size>
+    <free_memory/>
+    <unique_rows>N</unique_rows>
+    <compress>N</compress>
+    <distribute>Y</distribute>
+    <copies>1</copies>
+    <GUI>
+      <xloc>1360</xloc>
+      <yloc>240</yloc>
+    </GUI>
+    <description>Misma clave y mismo orden que el otro flujo.</description>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
+    <attributes/>
+  </transform>
+  <transform>
+    <type>MergeJoin</type>
+    <name>09 Merge join por tconst</name>
+    <join_type>INNER</join_type>
+    <transform1>06 Ordenar basics por tconst</transform1>
+    <transform2>08 Ordenar ratings por tconst</transform2>
+    <keys_1>
+      <key>tconst</key>
+    </keys_1>
+    <keys_2>
+      <key>tconst</key>
+    </keys_2>
+    <distribute>Y</distribute>
+    <copies>1</copies>
+    <GUI>
+      <xloc>1360</xloc>
+      <yloc>112</yloc>
+    </GUI>
+    <description>INNER JOIN por tconst: solo peliculas que ademas tienen calificacion.</description>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
+    <attributes/>
+  </transform>
+  <transform>
+    <type>SelectValues</type>
+    <name>10 Campos finales y tipos</name>
+    <fields>
+      <field>
+        <name>tconst</name>
+        <rename/>
+        <length>-2</length>
+        <precision>-2</precision>
+      </field>
+      <field>
+        <name>primaryTitle</name>
+        <rename>title</rename>
+        <length>-2</length>
+        <precision>-2</precision>
+      </field>
+      <field>
+        <name>startYear</name>
+        <rename/>
+        <length>-2</length>
+        <precision>-2</precision>
+      </field>
+      <field>
+        <name>genres</name>
+        <rename/>
+        <length>-2</length>
+        <precision>-2</precision>
+      </field>
+      <field>
+        <name>averageRating</name>
+        <rename/>
+        <length>-2</length>
+        <precision>-2</precision>
+      </field>
+      <field>
+        <name>numVotes</name>
+        <rename/>
+        <length>-2</length>
+        <precision>-2</precision>
+      </field>
+      <select_unspecified>N</select_unspecified>
+      <meta>
+        <name>startYear</name>
+        <rename>startYear</rename>
+        <type>Integer</type>
+        <length>4</length>
+        <precision>0</precision>
+        <storage_type/>
+        <conversion_mask/>
+        <date_format_lenient>N</date_format_lenient>
+        <date_format_locale/>
+        <date_format_timezone/>
+        <lenient_string_to_number>N</lenient_string_to_number>
+        <decimal_symbol/>
+        <grouping_symbol/>
+        <currency_symbol/>
+        <encoding/>
+        <roundingType>half_even</roundingType>
+      </meta>
+      <meta>
+        <name>averageRating</name>
+        <rename>averageRating</rename>
+        <type>Number</type>
+        <length>3</length>
+        <precision>2</precision>
+        <storage_type/>
+        <conversion_mask/>
+        <date_format_lenient>N</date_format_lenient>
+        <date_format_locale/>
+        <date_format_timezone/>
+        <lenient_string_to_number>N</lenient_string_to_number>
+        <decimal_symbol/>
+        <grouping_symbol/>
+        <currency_symbol/>
+        <encoding/>
+        <roundingType>half_even</roundingType>
+      </meta>
+      <meta>
+        <name>numVotes</name>
+        <rename>numVotes</rename>
+        <type>Integer</type>
+        <length>9</length>
+        <precision>0</precision>
+        <storage_type/>
+        <conversion_mask/>
+        <date_format_lenient>N</date_format_lenient>
+        <date_format_locale/>
+        <date_format_timezone/>
+        <lenient_string_to_number>N</lenient_string_to_number>
+        <decimal_symbol/>
+        <grouping_symbol/>
+        <currency_symbol/>
+        <encoding/>
+        <roundingType>half_even</roundingType>
+      </meta>
+    </fields>
+    <distribute>Y</distribute>
+    <copies>1</copies>
+    <GUI>
+      <xloc>1664</xloc>
+      <yloc>112</yloc>
+    </GUI>
+    <description>Renombra primaryTitle a title y convierte a numero startYear, averageRating y numVotes. Sin esto Power BI los trataria como texto y no podria sumar ni promediar.</description>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
+    <attributes/>
+  </transform>
+  <transform>
+    <type>StringOperations</type>
+    <name>11 Clave de titulo</name>
+    <fields>
+      <field>
+        <in_stream_name>title</in_stream_name>
+        <out_stream_name>title_key</out_stream_name>
+        <trim_type>both</trim_type>
+        <lower_upper>lower</lower_upper>
+        <init_cap>no</init_cap>
+        <mask_xml>none</mask_xml>
+        <digits>none</digits>
+        <remove_special_characters>none</remove_special_characters>
+        <padding_type>none</padding_type>
+        <pad_len/>
+        <pad_char/>
+      </field>
+    </fields>
+    <distribute>N</distribute>
+    <copies>1</copies>
+    <GUI>
+      <xloc>1664</xloc>
+      <yloc>256</yloc>
+    </GUI>
+    <description>title_key = minusculas y sin espacios sobrantes. Es la clave con la que Power BI cruza IMDb contra box office (junto con el anio).</description>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
+    <attributes/>
+  </transform>
+  <transform>
+    <type>TableOutput</type>
+    <name>13 Guardar en MySQL (imdb_clean_final)</name>
+    <connection>imdb_mysql</connection>
+    <table>imdb_clean_final</table>
+    <commit>5000</commit>
+    <truncate>Y</truncate>
+    <only_when_have_rows>N</only_when_have_rows>
+    <ignore_errors>N</ignore_errors>
+    <use_batch>Y</use_batch>
+    <partitioning_enabled>N</partitioning_enabled>
+    <partitioning_daily>N</partitioning_daily>
+    <partitioning_monthly>N</partitioning_monthly>
+    <tablename_in_field>N</tablename_in_field>
+    <tablename_in_table>N</tablename_in_table>
+    <return_keys>N</return_keys>
+    <specify_fields>N</specify_fields>
+    <auto_update_table_structure>N</auto_update_table_structure>
+    <always_drop_and_recreate>N</always_drop_and_recreate>
+    <add_columns>N</add_columns>
+    <drop_columns>N</drop_columns>
+    <change_column_types>N</change_column_types>
+    <fields/>
+    <distribute>N</distribute>
+    <copies>1</copies>
+    <GUI>
+      <xloc>1600</xloc>
+      <yloc>420</yloc>
+    </GUI>
+    <description>Escribe los datos limpios finales en la tabla imdb_clean_final de MySQL.</description>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
+    <attributes/>
+  </transform>
+  <order>
+    <hop>
+      <from>01 Leer title.basics</from>
+      <to>02 Solo peliculas</to>
+      <enabled>Y</enabled>
+    </hop>
+    <hop>
+      <from>02 Solo peliculas</from>
+      <to>03 Con anio</to>
+      <enabled>Y</enabled>
+    </hop>
+    <hop>
+      <from>03 Con anio</from>
+      <to>04 Con genero</to>
+      <enabled>Y</enabled>
+    </hop>
+    <hop>
+      <from>04 Con genero</from>
+      <to>05 Sin contenido adulto</to>
+      <enabled>Y</enabled>
+    </hop>
+    <hop>
+      <from>05 Sin contenido adulto</from>
+      <to>06 Ordenar basics por tconst</to>
+      <enabled>Y</enabled>
+    </hop>
+    <hop>
+      <from>06 Ordenar basics por tconst</from>
+      <to>09 Merge join por tconst</to>
+      <enabled>Y</enabled>
+    </hop>
+    <hop>
+      <from>07 Leer title.ratings</from>
+      <to>08 Ordenar ratings por tconst</to>
+      <enabled>Y</enabled>
+    </hop>
+    <hop>
+      <from>08 Ordenar ratings por tconst</from>
+      <to>09 Merge join por tconst</to>
+      <enabled>Y</enabled>
+    </hop>
+    <hop>
+      <from>09 Merge join por tconst</from>
+      <to>10 Campos finales y tipos</to>
+      <enabled>Y</enabled>
+    </hop>
+    <hop>
+      <from>10 Campos finales y tipos</from>
+      <to>11 Clave de titulo</to>
+      <enabled>Y</enabled>
+    </hop>
+    <hop>
+      <from>11 Clave de titulo</from>
+      <to>13 Guardar en MySQL (imdb_clean_final)</to>
+      <enabled>Y</enabled>
+    </hop>
+  </order>
+  <notepads/>
+  <attributes/>
+  <transform_error_handling/>
+</pipeline>

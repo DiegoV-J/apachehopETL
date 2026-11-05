@@ -1,0 +1,48 @@
+# ==========================================
+# .gitignore para Proyecto Apache Hop ETL
+# ==========================================
+
+# Archivos de datos crudos (RAW) - Excluye fuentes masivas (>100MB / gigabytes)
+raw/*
+!raw/FUENTES_RAW.md
+!raw/.gitkeep
+
+# Archivos de datos procesados (Staging / Salidas)
+staging/*
+!staging/.gitkeep
+
+# Exclusiones globales de formatos pesados de datos y dumps
+*.tsv
+*.tsv.gz
+*.csv.gz
+*.parquet
+*.zip
+*.tar
+*.gz
+*.rar
+*.7z
+
+# Exclusión de archivos de datos grandes en raíz (si los hubiera)
+*.csv
+!sample_*.csv
+
+# Archivos temporales de Apache Hop y logs
+.hop/
+hop.log
+*.log
+*.tmp
+*.bak
+
+# Entornos y Editores
+.idea/
+.vscode/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# Configuración de credenciales y variables de entorno locales
+.env
+.env.local
+*.key
+*.pem

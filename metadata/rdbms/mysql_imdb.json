@@ -1,0 +1,23 @@
+{
+  "rdbms": {
+    "MYSQL": {
+      "databaseName": "imdb",
+      "pluginId": "MYSQL",
+      "accessType": 0,
+      "hostname": "localhost",
+      "password": "Encrypted 2be98afc86aa7f2e4cb79ce10cc9da0ce",
+      "pluginName": "MySQL",
+      "port": "3306",
+      "attributes": {
+        "FORCE_IDENTIFIERS_TO_LOWERCASE": "N",
+        "PRESERVE_RESERVED_WORD_CASE": "Y",
+        "QUOTE_ALL_FIELDS": "N",
+        "SUPPORTS_BOOLEAN_DATA_TYPE": "Y",
+        "SUPPORTS_TIMESTAMP_DATA_TYPE": "Y",
+        "FORCE_IDENTIFIERS_TO_UPPERCASE": "N"
+      },
+      "username": "root"
+    }
+  },
+  "name": "mysql_imdb"
+}
